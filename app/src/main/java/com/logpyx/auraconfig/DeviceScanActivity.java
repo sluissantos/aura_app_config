@@ -54,6 +54,9 @@ public class DeviceScanActivity extends AppCompatActivity implements RecyclerVie
     private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final int PERMISSION_REQUEST_FINE_LOCATION = 2;
+    private static final int PERMISSION_REQUEST_BLUETOOTH = 3;
+    private static final int PERMISSION_REQUEST_BLUETOOTH_ADMIN = 4;
+    private static final int PERMISSION_REQUEST_BLUETOOTH_SCAN = 5;
 
     //private Handler mHandler;
     private BluetoothAdapter mBluetoothAdapter;
@@ -153,9 +156,7 @@ public class DeviceScanActivity extends AppCompatActivity implements RecyclerVie
                 });
                 builder.show();
             }
-        }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Log.i(TAG, "ACCESS_FINE_LOCATION = " + String.valueOf(this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)));
             if (this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 final AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -166,6 +167,52 @@ public class DeviceScanActivity extends AppCompatActivity implements RecyclerVie
                     @Override
                     public void onDismiss(DialogInterface dialog) {
                         requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_FINE_LOCATION);
+                    }
+                });
+                builder.show();
+            }
+
+            Log.i(TAG, "BLUETOOTH = " + String.valueOf(this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)));
+            if (this.checkSelfPermission(Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
+                final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("This app needs bluetooth access");
+                builder.setMessage("Please grant bluetooth access so this app can detect peripherals.");
+                builder.setPositiveButton(android.R.string.ok, null);
+                builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        requestPermissions(new String[]{Manifest.permission.BLUETOOTH}, PERMISSION_REQUEST_BLUETOOTH);
+                    }
+                });
+                builder.show();
+            }
+
+            Log.i(TAG, "BLUETOOTH_ADMIN = " + String.valueOf(this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)));
+            if (this.checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
+                final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("This app needs bluetooth access");
+                builder.setMessage("Please grant bluetooth access so this app can detect peripherals.");
+                builder.setPositiveButton(android.R.string.ok, null);
+                builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        requestPermissions(new String[]{Manifest.permission.BLUETOOTH_ADMIN}, PERMISSION_REQUEST_BLUETOOTH_ADMIN);
+                    }
+                });
+                builder.show();
+            }
+
+            Log.i(TAG, "BLUETOOTH_SCAN = " + String.valueOf(this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)));
+            if (this.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                checkBluetoothPermissions();
+                final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("This app needs bluetooth access");
+                builder.setMessage("Please grant bluetooth access so this app can detect peripherals.");
+                builder.setPositiveButton(android.R.string.ok, null);
+                builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        requestPermissions(new String[]{Manifest.permission.BLUETOOTH_SCAN}, PERMISSION_REQUEST_BLUETOOTH_SCAN);
                     }
                 });
                 builder.show();
@@ -186,11 +233,26 @@ public class DeviceScanActivity extends AppCompatActivity implements RecyclerVie
             Toast.makeText(this, R.string.error_bluetooth_not_supported, Toast.LENGTH_SHORT).show();
             finish();
             return;
+        } else{
+            if (!mBluetoothAdapter.isEnabled()) {
+                // O Bluetooth está desativado, solicite ao usuário que o ative.
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            }
         }
         filtro=findViewById(R.id.filtro_edit);
-        //Parte de implementação do recycle view
         rvBles = findViewById(R.id.recycle_view_main);
         mLeDevices = new ArrayList<>();
+    }
+
+    private void checkBluetoothPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.BLUETOOTH_SCAN},
+                    PERMISSION_REQUEST_BLUETOOTH_SCAN);
+            Log.d(TAG, "checkBluetoothPermissions: pediu o scan");
+        }
     }
 
     @Override
@@ -207,10 +269,6 @@ public class DeviceScanActivity extends AppCompatActivity implements RecyclerVie
         }
         return true;
     }
-//    SwipeRefreshLayout mySwipeRefreshLayout;
-//    private void myUpdateOperation(){
-//
-//    }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -226,11 +284,6 @@ public class DeviceScanActivity extends AppCompatActivity implements RecyclerVie
                 startStopOperations(false);
                 Toast.makeText(this, "Stop Selecionado", Toast.LENGTH_SHORT).show();
                 break;
-//            case R.id.action_refresh:
-//                mySwipeRefreshLayout.setRefreshing(true);
-//                myUpdateOperation();
-//                Toast.makeText(this, "Refresh Selecionado", Toast.LENGTH_SHORT).show();
-//                break;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -244,15 +297,12 @@ public class DeviceScanActivity extends AppCompatActivity implements RecyclerVie
 
     private void scanLeDevice(final boolean enable) {
         if (enable) {
-            //scanning until stopped
             Log.i(TAG, "BLUETOOTH_SCAN = " + String.valueOf(this.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)));
+            checkBluetoothPermissions();
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
-                 // mBluetoothAdapter.getBluetoothLeScanner().startScan(buildScanFilters(), buildScanSettings(), leScanCallback);
                 mBluetoothAdapter.getBluetoothLeScanner().startScan(leScanCallback);
                 scanning = true;
             }
-            //invalidateOptionsMenu();
-            //scanning = true;
             } else {
                 scanning = false;
                 mBluetoothAdapter.getBluetoothLeScanner().stopScan(leScanCallback);
@@ -270,9 +320,14 @@ public class DeviceScanActivity extends AppCompatActivity implements RecyclerVie
                 startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
             }
         }
-
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH}, PERMISSION);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_ADMIN}, PERMISSION);
         }
 
         rvBles.setLayoutManager(new LinearLayoutManager(getBaseContext()));
@@ -337,7 +392,6 @@ public class DeviceScanActivity extends AppCompatActivity implements RecyclerVie
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    //parte de clicar na lista e ir pra tela de configuração
     @Override
     public void onItemClick(int position) {
         final BluetoothDevice device= mLeDevices.get(position);
@@ -358,29 +412,7 @@ public class DeviceScanActivity extends AppCompatActivity implements RecyclerVie
         invalidateOptionsMenu();
 
     }
-//    final byte[] setServiceData = new byte[]{
-//            0x11,0x50, 0x64
-//    };
-/*
-    //parte de filtro dispositivo
-    private List<ScanFilter> buildScanFilters() {
-        ScanFilter.Builder builder = new ScanFilter.Builder();
-        // parte que estava dando problema com a caracteristica que o fabiano estava passando
-        builder.setServiceUuid(new ParcelUuid(UUID.fromString("a6530bf2-d97e-478f-8814-78549e53f0be")));
-        ScanFilter build = builder.build();
-        List<ScanFilter> filters = new ArrayList<>();
-        filters.add(build);
-        return filters;
 
-    }
-    private ScanSettings buildScanSettings() {
-        ScanSettings.Builder builder = new ScanSettings.Builder();
-        builder.setScanMode(ScanSettings.SCAN_MODE_BALANCED);
-        return builder.build();
-    }
-*/
-
-    //parte de gatt service?
     private void advertise(final boolean enable) {
 
         if (enable && mBluetoothAdapter.isMultipleAdvertisementSupported() && !advertising) {

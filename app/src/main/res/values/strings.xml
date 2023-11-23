@@ -44,9 +44,9 @@
         <item>1300</item>
     </string-array>
     <string-array name="spinner_pr">
-        <item>@string/spinner_hint</item>
-        <item>Forklift</item>
-        <item>Over Crane</item>
-        <item>Access Control</item>
+        <item></item>
+        <item>FORKLIFT</item>
+        <item>OVER CRANE</item>
+        <item>ACCESS CONTROL</item>
     </string-array>
 </resources>

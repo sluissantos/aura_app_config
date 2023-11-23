@@ -1,7 +1,6 @@
 package com.logpyx.auraconfig;
 
 import android.os.Handler;
-import android.provider.ContactsContract;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -19,6 +18,11 @@ public class Aura extends Protocol implements ReceiveInterface{
         super(sendInterface);
     }
 
+    public DeviceControlActivity deviceControlActivity;
+    public void setDeviceControlActivity(DeviceControlActivity activity) {
+        this.deviceControlActivity = activity;
+    }
+
     @Override
     void processCommand(int[] DataBuffer) {
         for (int i=0; i<DataBufferSize; i++){
@@ -28,149 +32,61 @@ public class Aura extends Protocol implements ReceiveInterface{
             Log.i(TAG, "DataBuffer["+i+"]="+Integer.toString(DataBuffer[i]));
         }
         switch (DataBuffer[0]){
-            case SampleGattAttributes.RD_ALL_INFO_DEVICE:
-                //if(int16 != -1){}
-                if(decaWaveIDList.size() < 5){
-                    short int16 = (short)(((DataBuffer[1] & 0xFF) << 8) | (DataBuffer[2] & 0xFF));
-                    long int64;
-                    if (int16 < 0 ) {
-                        int64 = (long)(int16 + 65536);
-                        Log.d("ExtratNegative",""+int64);
-                    }
-                    Log.i(TAG,"DecaWaveIDList"+ decaWaveIDList);
-                    decaWaveIDList.add(int16);
-                    Log.i(TAG,"processCommand -> Recebendo device info");
-                    //Log.i(TAG,"DecaID "+ DataBuffer[1] +" "+ DataBuffer[2]/*int16*/);
-                }
-                if(offsetList.size() < 5){
-                    short int16 = (short)(((DataBuffer[3] & 0xFF) << 8) | (DataBuffer[4] & 0xFF));
-                    offsetList.add(int16);
-                    Log.i(TAG,"processCommand -> Recebendo device info");
-                    Log.i(TAG,"offset "+ int16);
-                }
-                if(farDistanceList.size() < 5){
-                    short int16 = (short)(((DataBuffer[5] & 0xFF) << 8) | (DataBuffer[6] & 0xFF));
-                    farDistanceList.add(int16);
-                    Log.i(TAG,"processCommand -> Recebendo device info");
-                    Log.i(TAG,"far distance "+ int16);
-                }
-                if(nearDistanceList.size() < 5){
-                    short int16 = (short)(((DataBuffer[7] & 0xFF) << 8) | (DataBuffer[8] & 0xFF));
-                    nearDistanceList.add(int16);
-                    Log.i(TAG,"processCommand -> Recebendo device info");
-                    Log.i(TAG,"near distance "+ int16);
-                }
-                break;
             case SampleGattAttributes.RD_REQUEST_CONNECTION:
-                //Apenas responde para o AURA que esse device
                 sendDeviceID((byte)DataBuffer[1],100);
                 break;
-            case SampleGattAttributes.WR_GET_OVERCRANE_PARAM:
-                byte[] packageBuffer = new byte[517];
-                for(int i=1; i<DataBuffer.length; i++){
-                    if(DataBuffer[i]<0){
-                        DataBuffer[i]+=256;
-                    }
-                    packageBuffer[i-1] = (byte)DataBuffer[i];
+            case SampleGattAttributes.RD_ALL_INFO_DEVICE:
+                updateLog(DataBuffer);
+                break;
+
+            case SampleGattAttributes.RD_VERSION:
+                if(DataBufferSize == 7){
+                    updateRdRevision(DataBuffer);
                 }
                 break;
 
-            case SampleGattAttributes.WR_ID_CELULAR:
-                int device = (byte)(DataBuffer[1] >>8);
-                DeviceControlActivity deviceControlActivity = (DeviceControlActivity) ActivityManager.getCurrentActivity();
-                if (deviceControlActivity != null) {
-                    deviceControlActivity.updateArgument(Integer.toString(device)); // Substitua "argumentValue" pelo novo valor
+            case SampleGattAttributes.WR_GET_OVERCRANE_PARAM:
+                if(DataBufferSize == 13) {
+                    updateGetOvercraneParam(DataBuffer);
                 }
-                Log.i(TAG, "device = "+device);
+                break;
+
+            default:
                 break;
         }
     }
 
-   /*
-    Função: sendDistanciaZona1(int distancia, long delay)
-    Descrição: Envia a distancia definida para zona 1.
-    @param: int distancia -> Distancia em mm
-                long delay -> Delay em ms
-                (O android perde alguns frames, então eu atraso as funções para ele porder processar
-                acredito que acionar essas funções via intent seja interessante)
-    @return:    int length -> Quantidade de dados enviados (Nao funcional)
-    */
-    public int sendDistanciaZona1(int distancia,long delay){
-        int length=0;
-        byte[] data ={(byte)0xFF,
-                (byte)0xFF,
-                (byte)(distancia >>8),
-                (byte)(distancia)};
-
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                sendCommand((byte)SampleGattAttributes.WR_ZONE_FAR_DISTANCE,data,4);
-            }
-        };
-        handler.postDelayed(runnable,delay);
-        Log.i(TAG,"senDistanceZona1");
-        return length;
+    public void updateLog(int[] data){
+        if (deviceControlActivity != null) {
+            deviceControlActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    deviceControlActivity.updateLogText(data);
+                }
+            });
+        }
     }
 
-    /*
-    Função: sendDistanciaZona2(int distancia, long delay)
-    Descrição: Envia a distancia definida para zona 1.
-    @param: int distancia -> Distancia em mm
-                 long delay -> Delay em ms
-                 (O android perde alguns frames, então eu atraso as funções para ele porder processar
-                 acredito que acionar essas funções via intent seja interessante)
-    @return:    int length -> Quantidade de dados enviados (Nao funcional)
-    */
-    public int sendDistanciaZona2(int distancia,long delay){
-        int length=0;
-        byte[] data ={(byte)0xFF,
-                (byte)0xFF,
-                (byte)(distancia >>8),
-                (byte)(distancia)};
-
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                sendCommand((byte)SampleGattAttributes.WR_ZONE_NEAR_DISTANCE,data,4);
-            }
-        };
-        handler.postDelayed(runnable,delay);
-
-        Log.i(TAG,"senDistanceZona2");
-        return 0;
+    public void updateRdRevision(int[] data){
+        if (deviceControlActivity != null) {
+            deviceControlActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    deviceControlActivity.updateVersionRequest(data);
+                }
+            });
+        }
     }
 
-    /*
-    Função: sendTaxaRequisicao(int taxa, long delay)
-    Descrição: Envia a distancia definida para zona 1.
-    @param: int taxa -> Os valores da taxa são tabelas conforme a seguir
-                                0 - Representa 1300 ms
-                                1 - Representa  650 ms
-                                2 - Representa  380 ms
-                        long delay -> Delay em ms para envio da menssagem.
-                        (O android perde alguns frames, então eu atraso as funções para ele poder processar
-                         acredito que acionar essas funções via intent seja interessante)
-    @return:    int length -> Quantidade de dados enviados (Nao funcional)
-    */
-    public int sendTaxaRequisicao(int taxa,long delay){
-        int length=0;
-        if(taxa >2)
-            taxa = 2;
-
-        if(taxa < 0)
-            taxa = 0;
-
-        byte[] data ={(byte)taxa};
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                sendCommand((byte)SampleGattAttributes.WR_PERIOD_REQUEST,data,1);
-            }
-        };
-        handler.postDelayed(runnable,delay);
-        Log.i(TAG,"TaxaRequisiçao");
-        return length;
+    public void updateGetOvercraneParam(int[] data){
+        if (deviceControlActivity != null) {
+            deviceControlActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    deviceControlActivity.updateOverCraneParam(data);
+                }
+            });
+        }
     }
 
     /*
@@ -194,31 +110,6 @@ public class Aura extends Protocol implements ReceiveInterface{
         };
         handler.postDelayed(runnable,delay);
         Log.i(TAG,"Solicita Device Info");
-        return 0;
-    }
-
-    /*
-    Função: sendOffsetCommand(int decaWaveId, int offset, long delay)
-    Descrição: Envia um comando para configurar o offset do periférico baseado no decaWaveID
-    @param: int decaWaveId-> Identificador do periférico
-    @return:    int offset -> Valor do offset em mm
-    Funcionamento
-    Envio: solicitaDeviceInfo()-> (AURA Processa Comando e retorna dados disponiveis)
-    Recepção: onCharacteristicChanged()-> extratCommand() -> ProcessComando
-    */
-    public int sendOffsetCommand(int decaWaveId, int offset,long delay){
-        byte data[] ={(byte)(decaWaveId>>8),
-                (byte)decaWaveId,
-                (byte)(offset>>8),
-                (byte) offset};
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                sendCommand((byte)SampleGattAttributes.WR_PERIPHERAL_OFFSET,data,4);
-            }
-        };
-        handler.postDelayed(runnable,delay);
-        Log.i(TAG,"Device Info");
         return 0;
     }
 
@@ -289,14 +180,14 @@ public class Aura extends Protocol implements ReceiveInterface{
                 (byte)xOffSet,
                 (byte)(yOffSet>>8),
                 (byte)yOffSet,
-                (byte)(minSecDist>>8),
-                (byte)minSecDist,
                 (byte)(maxSecDist>>8),
                 (byte)maxSecDist,
-                (byte)(minAltura>>8),
-                (byte)minAltura,
+                (byte)(minSecDist>>8),
+                (byte)minSecDist,
                 (byte)(maxAltura>>8),
-                (byte)maxAltura};
+                (byte)maxAltura,
+                (byte)(minAltura>>8),
+                (byte)minAltura};
 
         Runnable runnable = new Runnable() {
             @Override
@@ -372,6 +263,24 @@ public class Aura extends Protocol implements ReceiveInterface{
             }
         };
         handler.postDelayed(runnable,delay);
+        return 0;
+    }
+
+    public int sendConfigBroker(byte[] brokerConfig, long delay) {
+
+        for (int i=0; i<brokerConfig.length; i++){
+            if(brokerConfig[i]<0){
+                brokerConfig[i]+=256;
+            }
+            Log.i(TAG, "brokerConfig["+i+"]="+Integer.toString(brokerConfig[i]));
+        }
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                sendCommand((byte) SampleGattAttributes.WR_BROKER_MQTT_CONFIG, brokerConfig, brokerConfig.length);
+            }
+        };
+        handler.postDelayed(runnable, delay);
         return 0;
     }
 

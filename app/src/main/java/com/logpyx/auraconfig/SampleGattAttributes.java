@@ -20,25 +20,32 @@ public class SampleGattAttributes {
     public static final int READING_OPCODE_DATA = 0x02;
     public static final int READING_CHECKSUM = 0x03;
     public static final int VALIDATING_PACKAGE = 0x04;
-    // Lista de Commandos implementados no firmware do aura
+    public static final int WR_DFU_START = 0xB0;
+    public static final int WR_OTA_START = 0xB1;
+    public static final int WR_ESP_RESTART = 0xB2;
+    public static final int RD_INCIDENT_LIST = 0xC0;
+    public static final int RD_INCIDENT_LIST_INFO = 0xC1;
+    public static final int ERASE_INCIDENT_LIST = 0xC2;
     public static final int RD_REQUEST_CONNECTION = 0xD0;
     public static final int RD_ALL_INFO_DEVICE = 0xD1;
     public static final int WR_TAG_ID_DISTANCE = 0xD2;
+    public static final int WR_ZONE_FAR_DISTANCE = 0xD3;
+    public static final int WR_ZONE_NEAR_DISTANCE = 0xD4;
     public static final int WR_PERIOD_REQUEST = 0xD5;
     public static final int WR_PERIPHERAL_OFFSET = 0xD6;
-
-    public static final int WR_OTA_START = 0xB1;
+    public static final int WR_DECA_ID_LIST = 0xD7;
+    public static final int RD_REQUEST_DISCONNECTION = 0xD8;
+    public static final int RD_VERSION = 0xDB;
     public static final int WR_URL_HTTPS_SERVER_OTA = 0xD9;
-    public static final int WR_DFU_START = 0xB0;
+    public static final int WR_BROKER_MQTT_CONFIG = 0xDC;
+    public static final int WR_SET_OVERCRANE_MODE = 0xF1;
     public static final int WR_SET_OVERCRANE_PARAM = 0xF2;
     public static final int WR_GET_OVERCRANE_PARAM = 0xF3;
-    public static final int WR_SET_OVERCRANE_MODE = 0xF1;
     public static final int WR_SET_FIX_TAG = 0xF0;
-    public static final int VERSION_REQUEST = 0xDB;
-    public static final int WR_DECA_ID_LIST = 0xD7;
-    public static final int WR_ZONE_NEAR_DISTANCE = 0xD4;
-    public static final int WR_ZONE_FAR_DISTANCE = 0xD3;
     public static final int WR_ID_CELULAR = 0xDE;
+    public static final int WR_OPERATION_ERRO = 0xE0;
+    public static final String FORKLIFT_MODE = "FORKLIFT";
+    public static final String OVER_CRANE_MODE = "OVER CRANE";
+    public static final String ACCESS_CONTROL = "ACCESS CONTROL";
 
-    public static final int RD_REQUEST_DISCONNECTION = 0xD8;
 }
